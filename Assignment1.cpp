@@ -1,4 +1,3 @@
-
 #include <sstream>
 #include <TL-Engine.h>	
 using namespace tle;
@@ -6,16 +5,23 @@ using namespace std;
 
 void main()
 {
-	float kSphereSpeed = 0.1f;
+	float kSphereSpeed = 0.15f;
 	const float kRotationSpeed = 0.05f;
-	bool pPressed = false;
-	bool CameraPressed = false;
-	bool canDraw = false;
+
+	enum CameraPressed {Pressed,NotPressed};
+	CameraPressed CameraState = NotPressed;
+
+	enum GamePressed {inProcess, Win};
+	GamePressed GameState = inProcess;
+
+	enum PlayingPressed {Playing, Stop};
+	PlayingPressed PlayingState = Playing;
+
 	I3DEngine* myEngine = New3DEngine( kTLX );
 	myEngine->StartWindowed();
 
-	float Sphereradius = 10.0;
-	const float CubeSides = 5.0;
+	float Sphereradius = 10.0f;
+	const float CubeSides = 5.0f;
 	
 	myEngine->AddMediaFolder( "C:\\ProgramData\\TL-Engine\\Media" );
 
@@ -23,8 +29,6 @@ void main()
 	float fontX = 0;
 	float fontY = 0;
 
-
-	
 	int playerPoints = 0;
 	int Upgrade = 40;
 	
@@ -38,10 +42,7 @@ void main()
 	IModel* sphere = sphereMesh->CreateModel(0, 10, 0);
 
 	IMesh* cubeMesh = myEngine->LoadMesh("minicube.x");
-	/*IModel* cube1 = cubeMesh->CreateModel(-80, 0, 80);
-	IModel* cube2 = cubeMesh->CreateModel(80,0,80);
-	IModel* cube3 = cubeMesh->CreateModel(80,0,-80);
-	IModel* cube4 = cubeMesh->CreateModel(-80,0,-80);*/
+	
 
 	IMesh* skyboxMesh = myEngine->LoadMesh("skybox.x");
 	IModel* skybox = skyboxMesh->CreateModel(0, -960, 0);
@@ -64,10 +65,11 @@ void main()
 			playerPoints += 10;
 		}
 	}
-
+	myEngine->Timer();
 	while (myEngine->IsRunning())
 	{
 		myEngine->DrawScene();
+		float deltaTime = myEngine->Timer();
 
 		if (myEngine->KeyHit(Key_Escape)) {
 			break;
@@ -86,16 +88,15 @@ void main()
 		}
 
 		if (myEngine->KeyHit(Key_P)) {
-			if (pPressed == false) {
+			if (PlayingState == Playing) {
 				kSphereSpeed = 0;
-				pPressed = true;
+				PlayingState = Stop;
 			}
 			else {
-				kSphereSpeed = 0.05f;
-				pPressed = false;
+				kSphereSpeed = 0.15f;
+				PlayingState = Playing;
 			}
 		}
-
 
 		if (myEngine->KeyHeld(Key_Y)) {
 			camera->MoveZ(kSphereSpeed);
@@ -123,52 +124,7 @@ void main()
 				playerPoints += 10;
 			}
 		}
-		/*float cubex, cubey, cubez;
-		cubex = cube1->GetX() - sphere->GetX();
-		cubey = cube1->GetY() - sphere->GetY();
-		cubez = cube1->GetZ() - sphere->GetZ();
-		float path1 = sqrt(cubex * cubex + cubey * cubey + cubez * cubez);
-
-		float cubex2, cubey2, cubez2;
-		cubex2 = cube2->GetX() - sphere->GetX();
-		cubey2 = cube2->GetY() - sphere->GetY();
-		cubez2 = cube2->GetZ() - sphere->GetZ();
-		float path2 = sqrt(cubex2 * cubex2 + cubey2 * cubey2 + cubez2 * cubez2);
-
-		float cubex3, cubey3, cubez3;
-		cubex3 = cube3->GetX() - sphere->GetX();
-		cubey3 = cube3->GetY() - sphere->GetY();
-		cubez3 = cube3->GetZ() - sphere->GetZ();
-		float path3 = sqrt(cubex3 * cubex3 + cubey3 * cubey3 + cubez3 * cubez3);
-
-		float cubex4, cubey4, cubez4;
-		cubex4 = cube4->GetX() - sphere->GetX();
-		cubey4 = cube4->GetY() - sphere->GetY();
-		cubez4 = cube4->GetZ() - sphere->GetZ();
-		float path4 = sqrt(cubex4 * cubex4 + cubey4 * cubey4 + cubez4 * cubez4);
-
-		if (path1 < Sphereradius + CubeSides / 2) {
-			cube1->SetPosition(0, -200, 0);
-			playerPoints += 10;
-			
-		}
-		if (path2 < Sphereradius + CubeSides / 2) {
-			cube2->SetPosition(0, -200, 0);
-			playerPoints += 10;
-			
-		}
-		if (path3 < Sphereradius + CubeSides / 2) {
-			cube3->SetPosition(0, -200, 0);
-			playerPoints += 10;
-			
-		}
-		if (path4 < Sphereradius + CubeSides / 2) {
-			cube4->SetPosition(0, -200, 0);
-			playerPoints += 10;
-			
-		} */
-
-
+	
 		stringstream outText;
 		outText << "Points: " << playerPoints;
 		myFont->Draw(outText.str(), fontX, fontY, kBlack);
@@ -178,34 +134,33 @@ void main()
 			Sphereradius *= 1.2;
 			sphere->MoveY(5);
 		}
+
+		if (playerPoints >= 30 && GameState == inProcess) {
+			outText << "You Won!";
+			fontX = 30.0f;
+			fontY = 30.0f;
+			myFont->Draw(outText.str(), fontX, fontY, kBlack);
+		}
 		
 
 		if (myEngine->KeyHit(Key_2)) {
-			if (CameraPressed == false) {
+			if (CameraState == NotPressed) {
 				ICamera* camera = myEngine->CreateCamera(kManual, 150, 150, -150);
 				camera->RotateLocalY(-45);
 				camera->RotateLocalX(45);
 
-				CameraPressed = true;
+				CameraState = Pressed;
 			}
 
 		}
 		if (myEngine->KeyHit(Key_1)) {
-			if (CameraPressed == true) {
+			if (CameraState == Pressed) {
 				ICamera* camera = myEngine->CreateCamera(kManual, 0, 200, 0);
 					camera->RotateLocalX(90);
 
-					CameraPressed = false;
+					CameraState = NotPressed;
 			}
 		}
-
-
-
-
-
-
-
-
 
 	}
 	myEngine->Delete();
