@@ -31,6 +31,7 @@ void main()
 
 	int playerPoints = 0;
 	int Upgrade = 40;
+	int SquareSide = 90;
 	
 	IMesh* waterMesh = myEngine->LoadMesh("water.x");
 	IModel* water = waterMesh->CreateModel(0,-5,0);
@@ -128,14 +129,18 @@ void main()
 		myFont->Draw(outText.str(), fontX, fontY, kBlack);
 		outText.str("");
 
-		if (playerPoints >= 50) {
+		if (playerPoints >= 50){
 			outText << "You Won!";
-			fontX = 500.0f;
-			fontY = 335.0f;
-			myFont->Draw(outText.str(), fontX, fontY, kRed);
+			myFont->Draw(outText.str(), 560.0f, 335.0f, kRed);
 			kSphereSpeed = 0;
 		}
-	}
+
+		if (!(sphere->GetX() < SquareSide && sphere->GetX() > -SquareSide) || !(sphere->GetZ() < SquareSide && sphere->GetZ() > -SquareSide)) {
+			outText << "You LOSE!";
+			myFont->Draw(outText.str(), 560.0f, 335.0f, kRed);
+			kSphereSpeed = 0;
+		}
+		}
 
 		if (playerPoints >= Upgrade) {
 			sphere->Scale(1.2f);
@@ -144,18 +149,11 @@ void main()
 			sphere->MoveY(5);
 		}
 
-		/*
-		if (sphere->GetX() > island->GetLocalX()) {
-			outText << "You LOSE!";
-			fontX = 500.0f;
-			fontY = 330.0f;
-			myFont->Draw(outText.str(), fontX, fontY, kRed);
-			kSphereSpeed = 0;
-		}*/
 
 		if (myEngine->KeyHit(Key_2)) {
 			if (CameraState == NotPressed) {
-				ICamera* camera = myEngine->CreateCamera(kManual, 150, 150, -150);
+				camera->ResetOrientation();
+				camera->SetPosition(150, 150, -150);
 				camera->RotateLocalY(-45);
 				camera->RotateLocalX(45);
 				CameraState = Pressed;
@@ -163,7 +161,8 @@ void main()
 		}
 		if (myEngine->KeyHit(Key_1)) {
 			if (CameraState == Pressed) {
-				ICamera* camera = myEngine->CreateCamera(kManual, 0, 200, 0);
+				camera->ResetOrientation();
+				camera->SetPosition(0, 200, 0);
 					camera->RotateLocalX(90);
 					CameraState = NotPressed;
 			}
