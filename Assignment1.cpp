@@ -5,8 +5,7 @@ using namespace std;
 
 void main()
 {
-	float kSphereSpeed = 0.15f;
-	const float kRotationSpeed = 0.05f;
+	float kSphereSpeed = 70.0f;
 
 	enum CameraPressed {Pressed,NotPressed};
 	CameraPressed CameraState = NotPressed;
@@ -17,11 +16,16 @@ void main()
 	enum PlayingPressed {Playing, Stop};
 	PlayingPressed PlayingState = Playing;
 
+	enum CubeTaken {Hyper, Regular};
+	CubeTaken SphereState = Regular;
+
 	I3DEngine* myEngine = New3DEngine( kTLX );
 	myEngine->StartWindowed();
 
 	float Sphereradius = 10.0f;
 	const float CubeSides = 5.0f;
+	float sphereTimer = 0;
+	float HypermodeLifeTime = 5.0f;
 	
 	myEngine->AddMediaFolder( "C:\\ProgramData\\TL-Engine\\Media" );
 
@@ -44,6 +48,7 @@ void main()
 	IModel* sphere = sphereMesh->CreateModel(0, 10, 0);
 
 	IMesh* cubeMesh = myEngine->LoadMesh("minicube.x");
+	
 
 	IMesh* skyboxMesh = myEngine->LoadMesh("skybox.x");
 	IModel* skybox = skyboxMesh->CreateModel(0, -960, 0);
@@ -53,22 +58,22 @@ void main()
 
 	IModel* cubeArray[12]; //kinda working
 	for (int CubeAmount = 11; CubeAmount >= 0; CubeAmount--) {
-		cubeArray[CubeAmount] = cubeMesh->CreateModel(rand() % 200 + (-80), 5 , rand() % 200 + (-110));
+		cubeArray[CubeAmount] = cubeMesh->CreateModel();
 	}
-
+	
 	for (int CubeAmount = 11; CubeAmount >= 0; CubeAmount--) {
 	if (CubeAmount > 0) {
 			float cubePathX = cubeArray[CubeAmount]->GetX() - cubeArray[CubeAmount - 1]->GetX();
-			float cubePathY = cubeArray[CubeAmount]->GetY() - cubeArray[CubeAmount - 1]->GetY();
 			float cubePathZ = cubeArray[CubeAmount]->GetZ() - cubeArray[CubeAmount - 1]->GetZ();
-			float cubePath = sqrt(cubePathX * cubePathX + cubePathY * cubePathY + cubePathZ * cubePathZ);
+			float cubePath = sqrt(cubePathX * cubePathX + cubePathZ * cubePathZ);
 
-			if (cubePath > CubeCollision) {
-				cubeArray[CubeAmount]->SetPosition(0, -200, 0);
-				cubeArray[CubeAmount] = cubeMesh->CreateModel(rand() % 200 + (-100), 5, rand() % 200 + (-110));
+			if (cubePath < CubeCollision) {
+				cubeArray[CubeAmount]->SetPosition(rand() % 200 + (-100), 5, rand() % 200 + (-100));
 			}
 		}
 	}
+	IModel* hypercube = cubeMesh->CreateModel(rand() % 200 + (-100), 5, rand() % 200 + (-100));
+	hypercube->SetSkin("hypercube.jpg");
 
 	myEngine->Timer();
 	while (myEngine->IsRunning())
@@ -80,16 +85,16 @@ void main()
 			break;
 		}
 		if (myEngine->KeyHeld(Key_W)) {
-			sphere->MoveLocalZ(kSphereSpeed);
+			sphere->MoveLocalZ(kSphereSpeed * deltaTime);
 		}
 		if (myEngine->KeyHeld(Key_S)) {
-			sphere->MoveLocalZ(-kSphereSpeed);
+			sphere->MoveLocalZ(-kSphereSpeed * deltaTime);
 		}
 		if (myEngine->KeyHeld(Key_A)) {
-			sphere->RotateLocalY(-kSphereSpeed * 2);
+			sphere->RotateLocalY(-kSphereSpeed * deltaTime * 1.5);
 		}
 		if (myEngine->KeyHeld(Key_D)) {
-			sphere->RotateLocalY(kSphereSpeed * 2);
+			sphere->RotateLocalY(kSphereSpeed * deltaTime * 1.5);
 		}
 
 		if (myEngine->KeyHit(Key_P) && !(GameState == Finished)) {
@@ -103,30 +108,48 @@ void main()
 			}
 		}
 
-		/*
+		
 		if (myEngine->KeyHeld(Key_Up)) {
-			camera->MoveZ(kSphereSpeed);
+			camera->MoveZ(myEngine->GetWidth() / 5 * deltaTime);
 		}
-		if (myEngine->KeyHeld(Key_Down)) {
-			camera->MoveZ(-kSphereSpeed);
+		else if (myEngine->KeyHeld(Key_Down)) {
+			camera->MoveZ(myEngine->GetWidth() / 5 * -deltaTime);
 		}
-		if (myEngine->KeyHeld(Key_Left)) {
-			camera->MoveX(-kSphereSpeed);
+		else if (myEngine->KeyHeld(Key_Left)) {
+			camera->MoveX(-deltaTime * myEngine->GetWidth() / 5);
 		}
-		if (myEngine->KeyHeld(Key_Right)) {
-			camera->MoveX(kSphereSpeed);
-		}*/
+		else if (myEngine->KeyHeld(Key_Right)) {
+			camera->MoveX(deltaTime * myEngine->GetWidth() / 5);
+		}
 
 		for (int CubeAmount = 11; CubeAmount >= 0; CubeAmount--) { 
 
 			float cubeX = cubeArray[CubeAmount]->GetX() - sphere->GetX();
-			float cubeY = cubeArray[CubeAmount]->GetY() - sphere->GetY();
 			float cubeZ = cubeArray[CubeAmount]->GetZ() - sphere->GetZ();
-			float path = sqrt(cubeX * cubeX + cubeY * cubeY + cubeZ * cubeZ);
+			float path = sqrt(cubeX * cubeX + cubeZ * cubeZ);
 
 			if (path < Sphereradius + CubeSides / 2) {
-				cubeArray[CubeAmount]->SetPosition(0, -200, 0);
+				cubeArray[CubeAmount]->SetPosition(rand() % 200 + (-100), 5, rand() % 200 + (-100));
 				playerPoints += 10;
+			}
+		}
+
+		if (SphereState == Regular){
+		float hyperX = hypercube->GetX() - sphere->GetX();
+		float hyperZ = hypercube->GetZ() - sphere->GetZ();
+		float hyperPath = sqrt(hyperX * hyperX + hyperZ * hyperZ);
+		if (hyperPath < Sphereradius + CubeSides / 2) {
+			hypercube->SetPosition(-1000, -200, 0);
+			sphere->SetSkin("hypersphere.jpg");
+			SphereState = Hyper;
+		}
+	    }
+		if (SphereState == Hyper) {
+			sphereTimer += deltaTime;
+			if (sphereTimer > HypermodeLifeTime) {
+				sphere->SetSkin("regularsphere.jpg");
+				sphereTimer = 0;
+				SphereState = Regular;
 			}
 		}
 
