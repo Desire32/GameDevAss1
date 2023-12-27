@@ -1,51 +1,33 @@
-#include <sstream>
 #include <TL-Engine.h>	
+#include <sstream>
 using namespace tle;
 using namespace std;
 
-/*struct Vectors {
-	float floatX = 0;
-	float floatY = 0;
-	float floatZ = 0;
-};
-
-void collectPositions(IModel* model, Vectors ModelPositions) {
-
-	ModelPositions.floatX = model->GetX();
-	ModelPositions.floatY = model->GetY();
-	ModelPositions.floatZ = model->GetZ();
-}
-
-float dotProductCalculate(Vectors v, Vectors w) {
-	return v.floatX * w.floatX + v.floatY * w.floatY + v.floatZ * w.floatZ;
-}*/
-
 void main()
 {
-	float kSphereSpeed = 70.0f;
-
 	enum GamePressed {inProcess, Finished};
 	GamePressed GameState = inProcess;
 
 	enum CubeTaken {Hyper, Regular};
 	CubeTaken SphereState = Regular;
 
-	enum PlayingPressed { Playing, Paused };
-	PlayingPressed PlayingState = Playing;
+	enum PausePressed { Playing, Paused };
+	PausePressed PauseState = Playing;
 
 	I3DEngine* myEngine = New3DEngine( kTLX );
 	myEngine->StartWindowed();
+	myEngine->AddMediaFolder("C:\\ProgramData\\TL-Engine\\Media");
 
+	float kGameSpeed = 70.0f;
 	float Sphereradius = 10.0f;
 	const float CubeSides = 5.0f;
 	float sphereTimer = 0;
 	const float HypermodeLifeTime = 5.0f;
-	
-	myEngine->AddMediaFolder( "C:\\ProgramData\\TL-Engine\\Media" );
 
 	IFont* myFont = myEngine->LoadFont("Comic Sans MS", 36);
 	
 	int playerPoints = 0;
+	int enemyPoints = 0;
 	int Upgrade = 40;
 	const int SquareSide = 90;
 	const int CubeCollision = 10;
@@ -61,9 +43,16 @@ void main()
 	IModel* sphere = sphereMesh->CreateModel(0, 10, 0);
 	
 	IMesh* cubeMesh = myEngine->LoadMesh("minicube.x");
+
+	IModel* hypercube = cubeMesh->CreateModel(rand() % 200 + (-100), 5, rand() % 200 + (-100));
+	hypercube->SetSkin("hypercube.jpg");
 	
 	IMesh* skyboxMesh = myEngine->LoadMesh("skybox.x");
 	IModel* skybox = skyboxMesh->CreateModel(0, -960, 0);
+
+	IMesh* enemySphereMesh = myEngine->LoadMesh("sphere.x");
+	IModel* enemySphere = enemySphereMesh->CreateModel(0, 10, 80);
+	enemySphere->SetSkin("enemysphere.jpg");
 
 	ICamera* camera = myEngine->CreateCamera(kManual,0,200,0);
 	camera->RotateLocalX(90);
@@ -77,16 +66,11 @@ void main()
 		float cubePathX = cubeArray[CubeAmount]->GetX() - cubeArray[CubeAmount - 1]->GetX();
 		float cubePathZ = cubeArray[CubeAmount]->GetZ() - cubeArray[CubeAmount - 1]->GetZ();
 		float cubePath = sqrt(cubePathX * cubePathX + cubePathZ * cubePathZ);
-
 		if (cubePath < CubeCollision) {
 			cubeArray[CubeAmount]->SetPosition(rand() % 200 + (-100), 5, rand() % 200 + (-100));
 		}
-		
 		CubeAmount--;
 		} while (CubeAmount > 0);
-
-	IModel* hypercube = cubeMesh->CreateModel(rand() % 200 + (-100), 5, rand() % 200 + (-100));
-	hypercube->SetSkin("hypercube.jpg");
 
 	myEngine->Timer();
 	while (myEngine->IsRunning())
@@ -97,36 +81,55 @@ void main()
 		if (myEngine->KeyHit(Key_Escape)) {
 			break;
 		}
+	
+		stringstream outText, enemyText, pause;
+		if (GameState == inProcess) {
+
 		if (myEngine->KeyHeld(Key_W)) {
-			sphere->MoveLocalZ(kSphereSpeed * deltaTime);
+				sphere->MoveLocalZ(kGameSpeed * deltaTime);
 		}
 		if (myEngine->KeyHeld(Key_S)) {
-			sphere->MoveLocalZ(-kSphereSpeed * deltaTime);
+				sphere->MoveLocalZ(-kGameSpeed * deltaTime);
 		}
 		if (myEngine->KeyHeld(Key_A)) {
-			sphere->RotateLocalY(-kSphereSpeed * deltaTime * 1.5);
+				sphere->RotateLocalY(-kGameSpeed * deltaTime * 1.5);
 		}
 		if (myEngine->KeyHeld(Key_D)) {
-			sphere->RotateLocalY(kSphereSpeed * deltaTime * 1.5);
+				sphere->RotateLocalY(kGameSpeed * deltaTime * 1.5);
 		}
 		if (myEngine->KeyHeld(Key_Up)) {
-			camera->MoveZ(myEngine->GetWidth() / 5 * deltaTime);
+				camera->MoveZ(kGameSpeed * deltaTime);
 		}
 		else if (myEngine->KeyHeld(Key_Down)) {
-			camera->MoveZ(myEngine->GetWidth() / 5 * -deltaTime);
+				camera->MoveZ(kGameSpeed * -deltaTime);
 		}
 		else if (myEngine->KeyHeld(Key_Left)) {
-			camera->MoveX(-deltaTime * myEngine->GetWidth() / 5);
+				camera->MoveX(-deltaTime * kGameSpeed);
 		}
 		else if (myEngine->KeyHeld(Key_Right)) {
-			camera->MoveX(deltaTime * myEngine->GetWidth() / 5);
+				camera->MoveX(deltaTime * kGameSpeed);
 		}
 
-		stringstream outText;
-		if (GameState == inProcess) {
+		if (myEngine->KeyHit(Key_P)) { // FIX LATER, UNNECESSARY
+			if (PauseState == Playing) {
+				outText << "Pause";
+				myFont->Draw(outText.str(), 560.0f, 335.0f, kBlue);
+				outText.str("");
+				PauseState = Paused;
+				kGameSpeed = 0;
+			}
+			if (PauseState == Paused) {
+				kGameSpeed = 70.0f;
+			}
+		}
+
 		outText << "Points:" << playerPoints;
 		myFont->Draw(outText.str(), 0, 0, kBlack);
 		outText.str("");
+
+		enemyText << "Enemy points: " << enemyPoints;
+		myFont->Draw(enemyText.str(), 0, 100, kBlack);
+		enemyText.str("");
 
 		if (SphereState == Regular) {
 			float hyperX = hypercube->GetX() - sphere->GetX();
@@ -137,7 +140,6 @@ void main()
 				sphere->SetSkin("hypersphere.jpg");
 				SphereState = Hyper;
 			}
-
 		}
 		if (SphereState == Hyper) {
 			sphereTimer += deltaTime;
@@ -147,7 +149,6 @@ void main()
 				SphereState = Regular;
 			}
 		}
-
 		if (myEngine->KeyHit(Key_2)) {
 				camera->ResetOrientation();
 				camera->SetPosition(150, 150, -150);
@@ -160,17 +161,26 @@ void main()
 				camera->RotateLocalX(90);
 		}
 
-		for (int CubeAmount = 11; CubeAmount >= 0; CubeAmount--) {
+		for (int CubeAmount = 11; CubeAmount >= 0; CubeAmount--) { // FIX
 			float cubeX = cubeArray[CubeAmount]->GetX() - sphere->GetX();
 			float cubeZ = cubeArray[CubeAmount]->GetZ() - sphere->GetZ();
 			float path = sqrt(cubeX * cubeX + cubeZ * cubeZ);
 
+			float enemyCubeX = cubeArray[CubeAmount]->GetX() - enemySphere->GetX();
+			float enemyCubeZ = cubeArray[CubeAmount]->GetZ() - enemySphere->GetZ();
+			float enemyPath = sqrt(enemyCubeX * enemyCubeX + enemyCubeZ * enemyCubeZ);
+			enemySphere->LookAt(cubeArray[CubeAmount]);
+			enemySphere->Move(enemyCubeX * deltaTime, 0, enemyCubeZ * deltaTime);
+
+			if (enemyPath < Sphereradius + CubeSides / 2) {
+				cubeArray[CubeAmount]->SetPosition(rand() % 200 + (-100), 5, rand() % 200 + (-100));
+				enemyPoints += 10;
+			}
 			if (path < Sphereradius + CubeSides / 2) {
 				cubeArray[CubeAmount]->SetPosition(rand() % 200 + (-100), 5, rand() % 200 + (-100));
 				playerPoints += 10;
 			}
 			if (path < 50 && SphereState == Hyper) { 
-				// cubeArray[CubeAmount]->LookAt(sphere);
 				cubeArray[CubeAmount]->Move(cubeX * -deltaTime, 0, cubeZ * -deltaTime);
 			}
 		}
@@ -179,13 +189,11 @@ void main()
 		if (playerPoints >= 120) {
 			outText << "You Won!";
 			myFont->Draw(outText.str(), 560.0f, 335.0f, kRed);
-			kSphereSpeed = 0;
 			GameState = Finished;
 		}
 		if (!(sphere->GetX() < SquareSide && sphere->GetX() > -SquareSide) || !(sphere->GetZ() < SquareSide && sphere->GetZ() > -SquareSide)) {
-			outText << "You LOSE!";
+			outText << "Game over";
 			myFont->Draw(outText.str(), 560.0f, 335.0f, kRed);
-			kSphereSpeed = 0;
 			GameState = Finished;
 		}
 		if (playerPoints >= Upgrade) {
@@ -194,19 +202,6 @@ void main()
 			Sphereradius *= 1.2;
 			sphere->MoveY(5);
 		}
-		if (myEngine->KeyHit(Key_P) && !(GameState == Finished)) { // FIX LATER, UNNECESSARY
-			if (PlayingState == Playing) {
-				kSphereSpeed = 0;
-				outText << "Pause";
-				myFont->Draw(outText.str(), 560.0f, 335.0f, kBlue);
-				PlayingState = Paused;
-			}
-			else {
-				kSphereSpeed = 70.0f;
-				PlayingState = Playing;
-			}
-		}
-
 	}
 	myEngine->Delete();
 }
