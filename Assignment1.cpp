@@ -3,6 +3,23 @@
 using namespace tle;
 using namespace std;
 
+/*struct Vectors {
+	float floatX = 0;
+	float floatY = 0;
+	float floatZ = 0;
+};
+
+void collectPositions(IModel* model, Vectors ModelPositions) {
+
+	ModelPositions.floatX = model->GetX();
+	ModelPositions.floatY = model->GetY();
+	ModelPositions.floatZ = model->GetZ();
+}
+
+float dotProductCalculate(Vectors v, Vectors w) {
+	return v.floatX * w.floatX + v.floatY * w.floatY + v.floatZ * w.floatZ;
+}*/
+
 void main()
 {
 	float kSphereSpeed = 70.0f;
@@ -42,10 +59,9 @@ void main()
 
 	IMesh* sphereMesh = myEngine->LoadMesh("spheremesh.x");
 	IModel* sphere = sphereMesh->CreateModel(0, 10, 0);
-
+	
 	IMesh* cubeMesh = myEngine->LoadMesh("minicube.x");
 	
-
 	IMesh* skyboxMesh = myEngine->LoadMesh("skybox.x");
 	IModel* skybox = skyboxMesh->CreateModel(0, -960, 0);
 
@@ -65,6 +81,7 @@ void main()
 		if (cubePath < CubeCollision) {
 			cubeArray[CubeAmount]->SetPosition(rand() % 200 + (-100), 5, rand() % 200 + (-100));
 		}
+		
 		CubeAmount--;
 		} while (CubeAmount > 0);
 
@@ -105,17 +122,23 @@ void main()
 			camera->MoveX(deltaTime * myEngine->GetWidth() / 5);
 		}
 
-		if (SphereState == Regular){
-		float hyperX = hypercube->GetX() - sphere->GetX();
-		float hyperZ = hypercube->GetZ() - sphere->GetZ();
-		float hyperPath = sqrt(hyperX * hyperX + hyperZ * hyperZ);
-		if (hyperPath < Sphereradius + CubeSides / 2) {
-			hypercube->SetPosition(-1000, -200, 0);
-			sphere->SetSkin("hypersphere.jpg");
-			SphereState = Hyper;
-		}
+		stringstream outText;
+		if (GameState == inProcess) {
+		outText << "Points:" << playerPoints;
+		myFont->Draw(outText.str(), 0, 0, kBlack);
+		outText.str("");
 
-	    }
+		if (SphereState == Regular) {
+			float hyperX = hypercube->GetX() - sphere->GetX();
+			float hyperZ = hypercube->GetZ() - sphere->GetZ();
+			float hyperPath = sqrt(hyperX * hyperX + hyperZ * hyperZ);
+			if (hyperPath < Sphereradius + CubeSides / 2) {
+				hypercube->SetPosition(-1000, -200, 0);
+				sphere->SetSkin("hypersphere.jpg");
+				SphereState = Hyper;
+			}
+
+		}
 		if (SphereState == Hyper) {
 			sphereTimer += deltaTime;
 			if (sphereTimer > HypermodeLifeTime) {
@@ -124,12 +147,6 @@ void main()
 				SphereState = Regular;
 			}
 		}
-
-		stringstream outText;
-		if (GameState == inProcess) {
-		outText << "Points:" << playerPoints;
-		myFont->Draw(outText.str(), 0, 0, kBlack);
-		outText.str("");
 
 		if (myEngine->KeyHit(Key_2)) {
 				camera->ResetOrientation();
@@ -152,9 +169,9 @@ void main()
 				cubeArray[CubeAmount]->SetPosition(rand() % 200 + (-100), 5, rand() % 200 + (-100));
 				playerPoints += 10;
 			}
-			if (path < 50) { // FIX
-				cubeArray[CubeAmount]->LookAt(sphere);
-				cubeArray[CubeAmount]->Move(sphere->GetLocalX() * -deltaTime, 0, sphere->GetLocalZ() * -deltaTime);
+			if (path < 50 && SphereState == Hyper) { 
+				// cubeArray[CubeAmount]->LookAt(sphere);
+				cubeArray[CubeAmount]->Move(cubeX * -deltaTime, 0, cubeZ * -deltaTime);
 			}
 		}
 		}
@@ -189,6 +206,7 @@ void main()
 				PlayingState = Playing;
 			}
 		}
+
 	}
 	myEngine->Delete();
 }
