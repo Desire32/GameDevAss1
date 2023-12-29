@@ -20,6 +20,7 @@ void main()
 
 	float kGameSpeed = 70.0f;
 	float Sphereradius = 10.0f;
+	float enemySphereTimer = 0;
 	const float CubeSides = 5.0f;
 	float sphereTimer = 0;
 	const float HypermodeLifeTime = 5.0f;
@@ -51,15 +52,14 @@ void main()
 	IModel* skybox = skyboxMesh->CreateModel(0, -960, 0);
 
 	IMesh* enemySphereMesh = myEngine->LoadMesh("sphere.x");
-	IModel* enemySphere = enemySphereMesh->CreateModel(0, 10, 80);
+	IModel* enemySphere = enemySphereMesh->CreateModel();
 	enemySphere->SetSkin("enemysphere.jpg");
 
 	ICamera* camera = myEngine->CreateCamera(kManual,0,200,0);
 	camera->RotateLocalX(90);
-
 	IModel* cubeArray[12]; //kinda working
 	for (int CubeAmount = 11; CubeAmount >= 0; CubeAmount--) {
-		cubeArray[CubeAmount] = cubeMesh->CreateModel();
+		cubeArray[CubeAmount] = cubeMesh->CreateModel(rand() % 200 + (-100), 5, rand() % 200 + (-100));
 	}
 	
 	do {
@@ -71,7 +71,6 @@ void main()
 		}
 		CubeAmount--;
 		} while (CubeAmount > 0);
-
 	myEngine->Timer();
 	while (myEngine->IsRunning())
 	{
@@ -160,18 +159,42 @@ void main()
 				camera->SetPosition(0, 200, 0);
 				camera->RotateLocalX(90);
 		}
-
 		for (int CubeAmount = 11; CubeAmount >= 0; CubeAmount--) { // FIX
 			float cubeX = cubeArray[CubeAmount]->GetX() - sphere->GetX();
 			float cubeZ = cubeArray[CubeAmount]->GetZ() - sphere->GetZ();
 			float path = sqrt(cubeX * cubeX + cubeZ * cubeZ);
 
-			float enemyCubeX = cubeArray[CubeAmount]->GetX() - enemySphere->GetX();
-			float enemyCubeZ = cubeArray[CubeAmount]->GetZ() - enemySphere->GetZ();
+			float enemyCubeX = enemySphere->GetX() - cubeArray[CubeAmount]->GetX();
+			float enemyCubeZ = enemySphere->GetZ() - cubeArray[CubeAmount]->GetZ();
 			float enemyPath = sqrt(enemyCubeX * enemyCubeX + enemyCubeZ * enemyCubeZ);
-			enemySphere->LookAt(cubeArray[CubeAmount]);
-			enemySphere->Move(enemyCubeX * deltaTime, 0, enemyCubeZ * deltaTime);
 
+			if (enemyPath < 50) {
+				enemySphere->LookAt(cubeArray[CubeAmount]);
+				enemySphere->Move(enemyCubeX * deltaTime, 0, -enemyCubeZ * deltaTime);
+			}
+
+			/*float dotProduct = (enemySphere->GetX() * cubeArray[CubeAmount]->GetX() + enemySphere->GetZ() * cubeArray[CubeAmount]->GetZ());
+			float crossProductX = enemySphere->GetY() * cubeArray[CubeAmount]->GetZ() - enemySphere->GetZ() * cubeArray[CubeAmount]->GetY();
+			float crossProductY = enemySphere->GetZ() * cubeArray[CubeAmount]->GetX() - enemySphere->GetX() * cubeArray[CubeAmount]->GetZ();
+			float crossProductZ = enemySphere->GetX() * cubeArray[CubeAmount]->GetY() - enemySphere->GetY() * cubeArray[CubeAmount]->GetX();
+			
+				enemySphere->Move(crossProductX * deltaTime, 0, crossProductZ * deltaTime);
+			
+			enemySphereTimer += deltaTime;
+			enemySphere->Move(rand() % 200 + (-100), 0, rand() % 200 + (-100));
+			if (enemySphereTimer > 5) {
+				enemySphereTimer = 0;
+				enemySphere->Move(rand() % 200 + (-100), 0, rand() % 200 + (-100));
+			}
+			*/
+
+			
+			
+			
+			
+
+
+			
 			if (enemyPath < Sphereradius + CubeSides / 2) {
 				cubeArray[CubeAmount]->SetPosition(rand() % 200 + (-100), 5, rand() % 200 + (-100));
 				enemyPoints += 10;
@@ -186,7 +209,7 @@ void main()
 		}
 		}
 
-		if (playerPoints >= 120) {
+		if (playerPoints >= 1020) {
 			outText << "You Won!";
 			myFont->Draw(outText.str(), 560.0f, 335.0f, kRed);
 			GameState = Finished;
