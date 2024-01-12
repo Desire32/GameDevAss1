@@ -1,5 +1,6 @@
 #include <TL-Engine.h>	
 #include <sstream>
+#include <cmath>
 using namespace tle;
 using namespace std;
 
@@ -17,6 +18,9 @@ void main()
 	enum CameraPressed {Normal, Isometric};
 	CameraPressed CameraState = Normal;
 
+	enum enemySphere {Gorizontal, Vertical};
+	enemySphere enemySphereState = Gorizontal;
+
 	I3DEngine* myEngine = New3DEngine( kTLX );
 	myEngine->StartWindowed();
 	myEngine->AddMediaFolder("C:\\ProgramData\\TL-Engine\\Media");
@@ -28,6 +32,10 @@ void main()
 	const float CubeSides = 5.0f;
 	float sphereTimer = 0;
 	const float HypermodeLifeTime = 5.0f;
+	const float kPi = 3.1415926f;
+	const float enemySphereSpeed = 0.65f;
+	float kRadius = 50.0f;
+	float enemySphereDegrees = 0.0f;
 	
 	int playerPoints = 0;
 	int enemyPoints = 0;
@@ -82,6 +90,50 @@ void main()
 		if (myEngine->KeyHit(Key_Escape)) {
 			break;
 		}
+
+		if (enemySphereState == Gorizontal) {
+			enemySphereTimer += deltaTime;
+
+			enemySphereDegrees += 0.1f * enemySphereSpeed;
+			if (enemySphereDegrees > 360.0f) {
+				enemySphereDegrees = 0.0f;
+			}
+			float radians = kPi / 180 * enemySphereDegrees;
+
+			float horizontalRadius = kRadius * 1.5;
+			float verticalRadius = kRadius;
+
+			float xPos = horizontalRadius * cos(radians);
+			float yPos = verticalRadius * sin(2 * radians);
+
+			enemySphere->SetPosition(xPos, 0, yPos);
+			if (enemySphereTimer > 3) {
+				enemySphereState = Vertical;
+				enemySphereTimer = 0;
+			}
+		}
+		if (enemySphereState == Vertical) {
+			enemySphereTimer += deltaTime;
+			
+			enemySphereDegrees += 0.1f * enemySphereSpeed;
+			if (enemySphereDegrees > 360.0f) {
+				enemySphereDegrees = 0.0f;
+			}
+			float radians = kPi / 180 * enemySphereDegrees;
+
+			float horizontalRadius = kRadius * 1.5;
+			float verticalRadius = kRadius;
+
+			float xPos = horizontalRadius * cos(radians);
+			float yPos = verticalRadius * sin(2 * radians);
+
+			enemySphere->SetPosition(yPos, 0, xPos);
+			if (enemySphereTimer > 3) {
+				enemySphereState = Gorizontal;
+			    enemySphereTimer = 0;
+			}
+		}
+		
 		stringstream outText, enemyText;
 		if (GameState == inProcess) {
 
@@ -171,7 +223,6 @@ void main()
 				}
 			}
 			for (int CubeAmount = 11; CubeAmount >= 0; CubeAmount--) { 
-
 				float cubeX = cubeArray[CubeAmount]->GetX() - sphere->GetX();
 				float cubeZ = cubeArray[CubeAmount]->GetZ() - sphere->GetZ();
 				float path = sqrt(cubeX * cubeX + cubeZ * cubeZ);
@@ -209,10 +260,6 @@ void main()
 			float enemyCubeZ = enemySphere->GetZ() - cubeArray[CubeAmount]->GetZ();
 			float enemyPath = sqrt(enemyCubeX * enemyCubeX + enemyCubeZ * enemyCubeZ);
 
-			if (enemyPath < 50 && !(PauseState == Paused)) {
-				/*enemySphere->Move(enemyCubeX * deltaTime, 0, -enemyCubeZ * deltaTime);*/
-				enemySphere->Move(enemyCubeX * deltaTime, 0, -enemyCubeZ * deltaTime);
-			}
 			if (enemyPath < Sphereradius + CubeSides / 2) {
 				cubeArray[CubeAmount]->SetPosition(rand() % 200 + (-90), 5, rand() % 220 + (-110));
 				enemyPoints += 10;
